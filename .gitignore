@@ -1,0 +1,22 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# .NET
+bin/
+obj/
+
+# Logs
+*.log
+
+# Configuración local
+appsettings.Development.json
+
+# PostgreSQL
+*.dump
+*.backup
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
