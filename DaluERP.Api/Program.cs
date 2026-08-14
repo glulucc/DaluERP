@@ -1,5 +1,7 @@
 using DaluERP.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using DaluERP.Api.DTOs;
+using DaluERP.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,11 +66,63 @@ app.MapGet("/api/health/database", async (DaluERPDbContext db) =>
     });
 });
 
+/*--------------------------------------------------------------*
+ *---------logica para categoria PRODUCTOS----------------------*
+ *--------------------------------------------------------------*/
 app.MapGet("/api/productos", async (DaluERPDbContext db) =>
 {
     var productos = await db.Productos.ToListAsync();
 
     return Results.Ok(productos);
+});
+
+app.MapGet("/api/productos/{id:long}", async (
+    long id,
+    DaluERPDbContext db) =>
+{
+    var producto = await db.Productos
+        .FirstOrDefaultAsync(p => p.ProductoId == id);
+
+    if (producto is null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(producto);
+});
+
+
+app.MapPost("/api/productos", async (
+    CrearProductoRequest request,
+    DaluERPDbContext db) =>
+{
+    var producto = new Producto
+    {
+        EmpresaId = request.EmpresaId,
+        CategoriaId = request.CategoriaId,
+        UnidadMedidaId = request.UnidadMedidaId,
+        Codigo = request.Codigo,
+        CodigoBarras = request.CodigoBarras,
+        Nombre = request.Nombre,
+        Descripcion = request.Descripcion,
+        TipoProducto = request.TipoProducto,
+        EsVendible = request.EsVendible,
+        EsInventariable = request.EsInventariable,
+        EsIngrediente = request.EsIngrediente,
+        CostoActual = request.CostoActual,
+        PrecioBase = request.PrecioBase,
+        StockMinimo = request.StockMinimo,
+        StockMaximo = request.StockMaximo,
+        Activa = request.Activa
+    };
+
+    db.Productos.Add(producto);
+
+    await db.SaveChangesAsync();
+
+    return Results.Created(
+        $"/api/productos/{producto.ProductoId}",
+        producto);
 });
 
 app.Run();

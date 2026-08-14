@@ -24,6 +24,10 @@ public class DaluERPDbContext : DbContext
             entity.HasKey(e => e.ProductoId);
 
             entity.Property(e => e.ProductoId)
+                .HasColumnName("producto_id")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.ProductoId)
                 .HasColumnName("producto_id");
 
             entity.Property(e => e.EmpresaId)
@@ -79,6 +83,16 @@ public class DaluERPDbContext : DbContext
 
             entity.Property(e => e.ActualizadoEn)
                 .HasColumnName("actualizado_en");
+
+            entity.Property(e => e.CreadoEn)
+               .HasColumnName("creado_en")
+               .HasDefaultValueSql("CURRENT_TIMESTAMP")
+               .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.ActualizadoEn)
+               .HasColumnName("actualizado_en")
+               .HasDefaultValueSql("CURRENT_TIMESTAMP")
+               .ValueGeneratedOnAdd();
         });
     }
 }
