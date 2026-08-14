@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<DaluERPDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DaluERP")));
-        
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -63,6 +63,14 @@ app.MapGet("/api/health/database", async (DaluERPDbContext db) =>
         conectado
     });
 });
+
+app.MapGet("/api/productos", async (DaluERPDbContext db) =>
+{
+    var productos = await db.Productos.ToListAsync();
+
+    return Results.Ok(productos);
+});
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
