@@ -1,7 +1,7 @@
-using DaluERP.Api.Data;
-using Microsoft.EntityFrameworkCore;
 using DaluERP.Api.DTOs;
 using DaluERP.Api.Models;
+using DaluERP.Api.Data;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -159,6 +159,79 @@ app.MapPost("/api/productos", async (
     return Results.Created(
         $"/api/productos/{producto.ProductoId}",
         producto);
+});
+
+app.MapPut("/api/productos/{id}", async (
+    long id,
+    ActualizarProductoRequest request,
+    DaluERPDbContext db) =>
+{
+    // 1. Validar datos
+    var validationContext = new ValidationContext(request);
+    var validationResults = new List<ValidationResult>();
+
+    var esValido = Validator.TryValidateObject(
+        request,
+        validationContext,
+        validationResults,
+        validateAllProperties: true);
+
+    if (!esValido)
+    {
+        return Results.BadRequest(validationResults);
+    }
+
+    // 2. Buscar producto
+    var producto = await db.Productos
+        .FirstOrDefaultAsync(p => p.ProductoId == id);
+
+    if (producto is null)
+    {
+        return Results.NotFound(new
+        {
+            mensaje = $"No existe un producto con el ID {id}."
+        });
+    }
+
+    // 3. Verificar código duplicado
+    var codigoExiste = await db.Productos
+        .AnyAsync(p =>
+            p.ProductoId != id &&
+            p.EmpresaId == producto.EmpresaId &&
+            p.Codigo == request.Codigo);
+
+    if (codigoExiste)
+    {
+        return Results.Conflict(new
+        {
+            mensaje = $"Ya existe otro producto con el código '{request.Codigo}' para esta empresa."
+        });
+    }
+
+    // 4. Actualizar propiedades permitidas
+    producto.CategoriaId = request.CategoriaId;
+    producto.UnidadMedidaId = request.UnidadMedidaId;
+    producto.Codigo = request.Codigo;
+    producto.CodigoBarras = request.CodigoBarras;
+    producto.Nombre = request.Nombre;
+    producto.Descripcion = request.Descripcion;
+    producto.TipoProducto = request.TipoProducto;
+    producto.EsVendible = request.EsVendible;
+    producto.EsInventariable = request.EsInventariable;
+    producto.EsIngrediente = request.EsIngrediente;
+    producto.CostoActual = request.CostoActual;
+    producto.PrecioBase = request.PrecioBase;
+    producto.StockMinimo = request.StockMinimo;
+    producto.StockMaximo = request.StockMaximo;
+    producto.Activa = request.Activa;
+
+    producto.ActualizadoEn = DateTime.UtcNow;
+
+    // 5. Guardar
+    await db.SaveChangesAsync();
+
+    // 6. Responder
+    return Results.Ok(producto);
 });
 
 app.Run();

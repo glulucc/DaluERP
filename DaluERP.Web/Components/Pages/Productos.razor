@@ -1,0 +1,88 @@
+@page "/productos"
+
+@using DaluERP.Web.Models
+@using System.Net.Http.Json
+
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Productos - DaluERP</PageTitle>
+
+<h1>Productos</h1>
+
+@if (cargando)
+{
+    <p>Cargando productos...</p>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">
+        @error
+    </div>
+}
+else if (productos.Count == 0)
+{
+    <p>No hay productos registrados.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Costo</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var producto in productos)
+            {
+                <tr>
+                    <td>@producto.Codigo</td>
+                    <td>@producto.Nombre</td>
+                    <td>@producto.PrecioBase.ToString("C2")</td>
+                    <td>@producto.CostoActual.ToString("C2")</td>
+                    <td>
+                        @if (producto.Activa)
+                        {
+                            <span>Activo</span>
+                        }
+                        else
+                        {
+                            <span>Inactivo</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ProductoDto> productos = new();
+    private bool cargando = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("DaluERP.Api");
+
+            var resultado = await client.GetFromJsonAsync<List<ProductoDto>>(
+                "/api/productos");
+
+            productos = resultado ?? new List<ProductoDto>();
+        }
+        catch (Exception ex)
+        {
+            error = $"No fue posible cargar los productos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+}
