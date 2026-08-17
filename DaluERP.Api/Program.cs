@@ -2,6 +2,7 @@ using DaluERP.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using DaluERP.Api.DTOs;
 using DaluERP.Api.Models;
+using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,7 +77,7 @@ app.MapGet("/api/productos", async (DaluERPDbContext db) =>
     return Results.Ok(productos);
 });
 
-app.MapGet("/api/productos/{id:long}", async (
+app.MapGet("/api/productos/{id}", async (
     long id,
     DaluERPDbContext db) =>
 {
@@ -85,7 +86,10 @@ app.MapGet("/api/productos/{id:long}", async (
 
     if (producto is null)
     {
-        return Results.NotFound();
+        return Results.NotFound(new
+        {
+            mensaje = $"No existe un producto con el ID {id}."
+        });
     }
 
     return Results.Ok(producto);
@@ -96,6 +100,36 @@ app.MapPost("/api/productos", async (
     CrearProductoRequest request,
     DaluERPDbContext db) =>
 {
+    // 1. Validar los datos recibidos
+    var validationContext = new ValidationContext(request);
+    var validationResults = new List<ValidationResult>();
+
+    var esValido = Validator.TryValidateObject(
+        request,
+        validationContext,
+        validationResults,
+        validateAllProperties: true);
+
+    if (!esValido)
+    {
+        return Results.BadRequest(validationResults);
+    }
+
+    // 2. Verificar si ya existe el código para la empresa
+    var codigoExiste = await db.Productos
+        .AnyAsync(p =>
+            p.EmpresaId == request.EmpresaId &&
+            p.Codigo == request.Codigo);
+
+    if (codigoExiste)
+    {
+        return Results.Conflict(new
+        {
+            mensaje = $"Ya existe un producto con el código '{request.Codigo}' para esta empresa."
+        });
+    }
+
+    // 3. Crear la entidad
     var producto = new Producto
     {
         EmpresaId = request.EmpresaId,
@@ -116,10 +150,12 @@ app.MapPost("/api/productos", async (
         Activa = request.Activa
     };
 
+    // 4. Guardar
     db.Productos.Add(producto);
 
     await db.SaveChangesAsync();
 
+    // 5. Responder
     return Results.Created(
         $"/api/productos/{producto.ProductoId}",
         producto);
