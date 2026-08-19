@@ -2,68 +2,153 @@
 
 @using DaluERP.Web.Models
 @using System.Net.Http.Json
-
 @inject IHttpClientFactory HttpClientFactory
 
 <PageTitle>Productos - DaluERP</PageTitle>
 
-<h1>Productos</h1>
+<div class="container-fluid">
 
-@if (cargando)
-{
-    <p>Cargando productos...</p>
-}
-else if (!string.IsNullOrEmpty(error))
-{
-    <div class="alert alert-danger">
-        @error
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Productos</h1>
+            <p class="text-muted mb-0">
+                Consulta y administración de productos
+            </p>
+        </div>
+
+        <button class="btn btn-primary">
+            + Nuevo producto
+        </button>
     </div>
-}
-else if (productos.Count == 0)
-{
-    <p>No hay productos registrados.</p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th>Producto</th>
-                <th>Precio</th>
-                <th>Costo</th>
-                <th>Estado</th>
-            </tr>
-        </thead>
 
-        <tbody>
-            @foreach (var producto in productos)
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+
+                    <label for="buscarProducto" class="form-label">
+                        Buscar producto
+                    </label>
+
+                    <input id="buscarProducto"
+                           class="form-control"
+                           placeholder="Código o nombre..."
+                           @bind="textoBusqueda"
+                           @bind:event="oninput" />
+
+                    <small class="text-muted">
+                        Texto buscado: @textoBusqueda
+                    </small>
+
+                </div>
+            </div>
+
+            @if (cargando)
             {
-                <tr>
-                    <td>@producto.Codigo</td>
-                    <td>@producto.Nombre</td>
-                    <td>@producto.PrecioBase.ToString("C2")</td>
-                    <td>@producto.CostoActual.ToString("C2")</td>
-                    <td>
-                        @if (producto.Activa)
-                        {
-                            <span>Activo</span>
-                        }
-                        else
-                        {
-                            <span>Inactivo</span>
-                        }
-                    </td>
-                </tr>
+                <div class="text-center py-4">
+                    <p>Cargando productos...</p>
+                </div>
             }
-        </tbody>
-    </table>
-}
+            else if (!string.IsNullOrEmpty(error))
+            {
+                <div class="alert alert-danger">
+                    @error
+                </div>
+            }
+            else if (productosFiltrados.Count() == 0)
+            {
+                <div class="alert alert-info">
+                    No se encontraron productos.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle">
+
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Precio</th>
+                                <th>Costo</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var producto in productosFiltrados)
+                            {
+                                <tr>
+
+                                    <td>
+                                        <strong>@producto.Codigo</strong>
+                                    </td>
+
+                                    <td>
+                                        @producto.Nombre
+                                    </td>
+
+                                    <td>
+                                        @producto.PrecioBase.ToString("C2")
+                                    </td>
+
+                                    <td>
+                                        @producto.CostoActual.ToString("C2")
+                                    </td>
+
+                                    <td>
+                                        @if (producto.Activa)
+                                        {
+                                            <span class="badge bg-success">
+                                                Activo
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                Inactivo
+                                            </span>
+                                        }
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+
+        </div>
+    </div>
+
+</div>
 
 @code {
+
+    private string textoBusqueda = string.Empty;
+
     private List<ProductoDto> productos = new();
+
     private bool cargando = true;
+
     private string? error;
+
+    private IEnumerable<ProductoDto> productosFiltrados =>
+        productos.Where(p =>
+            string.IsNullOrWhiteSpace(textoBusqueda)
+            || p.Codigo.Contains(
+                textoBusqueda,
+                StringComparison.OrdinalIgnoreCase)
+            || p.Nombre.Contains(
+                textoBusqueda,
+                StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,14 +156,16 @@ else
         {
             var client = HttpClientFactory.CreateClient("DaluERP.Api");
 
-            var resultado = await client.GetFromJsonAsync<List<ProductoDto>>(
-                "/api/productos");
+            var resultado =
+                await client.GetFromJsonAsync<List<ProductoDto>>(
+                    "/api/productos");
 
             productos = resultado ?? new List<ProductoDto>();
         }
         catch (Exception ex)
         {
-            error = $"No fue posible cargar los productos: {ex.Message}";
+            error =
+                $"No fue posible cargar los productos: {ex.Message}";
         }
         finally
         {
