@@ -1,7 +1,7 @@
-using DaluERP.Api.DTOs;
-using DaluERP.Api.Models;
 using DaluERP.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using DaluERP.Api.DTOs;
+using DaluERP.Api.Models;
 using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -208,7 +208,23 @@ app.MapPut("/api/productos/{id}", async (
         });
     }
 
-    // 4. Actualizar propiedades permitidas
+    // 4. Verificar código de barras duplicado
+    var codigoBarrasExiste =
+        !string.IsNullOrWhiteSpace(request.CodigoBarras) &&
+        await db.Productos.AnyAsync(p =>
+            p.ProductoId != id &&
+            p.EmpresaId == producto.EmpresaId &&
+            p.CodigoBarras == request.CodigoBarras);
+
+    if (codigoBarrasExiste)
+    {
+        return Results.Conflict(new
+        {
+            mensaje = $"Ya existe otro producto con el código de barras '{request.CodigoBarras}' para esta empresa."
+        });
+    }
+
+    // 5. Actualizar propiedades
     producto.CategoriaId = request.CategoriaId;
     producto.UnidadMedidaId = request.UnidadMedidaId;
     producto.Codigo = request.Codigo;
@@ -227,12 +243,13 @@ app.MapPut("/api/productos/{id}", async (
 
     producto.ActualizadoEn = DateTime.UtcNow;
 
-    // 5. Guardar
+    // 6. Guardar
     await db.SaveChangesAsync();
 
-    // 6. Responder
+    // 7. Responder
     return Results.Ok(producto);
 });
+
 
 app.Run();
 

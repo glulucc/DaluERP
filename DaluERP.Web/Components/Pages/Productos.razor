@@ -23,7 +23,7 @@
 {
     <div class="card mb-4">
         <div class="card-header">
-            <strong>Nuevo producto</strong>
+            <strong>@(modoEdicion ? "Editar producto" : "Nuevo producto")</strong>
         </div>
 
         <div class="card-body">
@@ -175,7 +175,9 @@
                 <button class="btn btn-primary me-2"
                         @onclick="GuardarProducto"
                         disabled="@guardando">
-                    @(guardando ? "Guardando..." : "Guardar")
+                    @(guardando
+                        ? "Guardando..."
+                        : (modoEdicion ? "Guardar cambios" : "Guardar"))
                 </button>
 
                 <button class="btn btn-secondary"
@@ -226,6 +228,7 @@ else
                 <th>Precio</th>
                 <th>Costo</th>
                 <th>Estado</th>
+                <th>Acciones</th>
             </tr>
         </thead>
 
@@ -270,6 +273,12 @@ else
                             </span>
                         }
                     </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary"
+                         @onclick="() => EditarProducto(producto)">
+                         Editar
+                        </button>
+                    </td>
                 </tr>
             }
 
@@ -281,22 +290,52 @@ else
 @code {
 
     private string textoBusqueda = string.Empty;
-
     private List<ProductoDto> productos = new();
-
     private bool cargando = true;
-
     private string? error;
-
     private bool mostrarFormulario;
-
     private bool guardando;
-
+    private bool modoEdicion;
+    private long productoEditandoId;
     private string? errorFormulario;
-
     private string? mensajeExito;
+    private CrearProductoDto nuevoProducto = new();
 
-    private CrearProductoDto nuevoProducto = new()
+ 
+    private IEnumerable<ProductoDto> productosFiltrados =>
+        productos.Where(p =>
+            string.IsNullOrWhiteSpace(textoBusqueda)
+            || (p.Codigo?.Contains(
+                    textoBusqueda,
+                    StringComparison.OrdinalIgnoreCase) ?? false)
+            || (p.Nombre?.Contains(
+                    textoBusqueda,
+                    StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private void MostrarFormulario()
+{
+    errorFormulario = null;
+    mensajeExito = null;
+
+    modoEdicion = false;
+    productoEditandoId = 0;
+
+    nuevoProducto = CrearProductoVacio();
+
+    mostrarFormulario = true;
+}
+
+   private void CancelarFormulario()
+{
+    mostrarFormulario = false;
+    modoEdicion = false;
+    productoEditandoId = 0;
+    errorFormulario = null;
+}
+
+private CrearProductoDto CrearProductoVacio()
+{
+    return new CrearProductoDto
     {
         EmpresaId = 1,
         CategoriaId = 1,
@@ -310,40 +349,100 @@ else
         StockMinimo = 0,
         Activa = true
     };
-
-    private IEnumerable<ProductoDto> productosFiltrados =>
-        productos.Where(p =>
-            string.IsNullOrWhiteSpace(textoBusqueda)
-            || (p.Codigo?.Contains(
-                    textoBusqueda,
-                    StringComparison.OrdinalIgnoreCase) ?? false)
-            || (p.Nombre?.Contains(
-                    textoBusqueda,
-                    StringComparison.OrdinalIgnoreCase) ?? false));
-
-    private void MostrarFormulario()
+}
+    private void EditarProducto(ProductoDto producto)
     {
         errorFormulario = null;
         mensajeExito = null;
+
+        productoEditandoId = producto.ProductoId;
+        modoEdicion = true;
         mostrarFormulario = true;
-    }
 
-    private void CancelarFormulario()
-    {
-        mostrarFormulario = false;
-        errorFormulario = null;
-    }
-
-    private async Task GuardarProducto()
-    {
-        guardando = true;
-        errorFormulario = null;
-        mensajeExito = null;
-
-        try
+        nuevoProducto = new CrearProductoDto
         {
-            var client = HttpClientFactory.CreateClient("DaluERP.Api");
+            EmpresaId = producto.EmpresaId,
+            CategoriaId = producto.CategoriaId,
+            UnidadMedidaId = producto.UnidadMedidaId,
+            Codigo = producto.Codigo ?? string.Empty,
+            CodigoBarras = producto.CodigoBarras,
+            Nombre = producto.Nombre ?? string.Empty,
+            Descripcion = producto.Descripcion,
+            TipoProducto = producto.TipoProducto ?? "PRODUCTO",
+            EsVendible = producto.EsVendible,
+            EsInventariable = producto.EsInventariable,
+            EsIngrediente = producto.EsIngrediente,
+            CostoActual = producto.CostoActual,
+            PrecioBase = producto.PrecioBase,
+            StockMinimo = producto.StockMinimo,
+            StockMaximo = producto.StockMaximo,
+            Activa = producto.Activa
+        };
+    }
 
+
+   private async Task GuardarProducto()
+{
+    guardando = true;
+    errorFormulario = null;
+    mensajeExito = null;
+
+    try
+    {
+        var client = HttpClientFactory.CreateClient("DaluERP.Api");
+
+        if (modoEdicion)
+        {
+            var request = new ActualizarProductoDto
+            {
+                Codigo = nuevoProducto.Codigo,
+                CodigoBarras = nuevoProducto.CodigoBarras,
+                Nombre = nuevoProducto.Nombre,
+                Descripcion = nuevoProducto.Descripcion,
+                TipoProducto = nuevoProducto.TipoProducto,
+                CategoriaId = nuevoProducto.CategoriaId,
+                UnidadMedidaId = nuevoProducto.UnidadMedidaId,
+                EsVendible = nuevoProducto.EsVendible,
+                EsInventariable = nuevoProducto.EsInventariable,
+                EsIngrediente = nuevoProducto.EsIngrediente,
+                CostoActual = nuevoProducto.CostoActual,
+                PrecioBase = nuevoProducto.PrecioBase,
+                StockMinimo = nuevoProducto.StockMinimo,
+                StockMaximo = nuevoProducto.StockMaximo,
+                Activa = nuevoProducto.Activa
+            };
+
+            var response = await client.PutAsJsonAsync(
+                $"/api/productos/{productoEditandoId}",
+                request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var productoActualizado =
+                    await response.Content.ReadFromJsonAsync<ProductoDto>();
+
+                if (productoActualizado is not null)
+                {
+                    var indice = productos.FindIndex(
+                        p => p.ProductoId == productoEditandoId);
+
+                    if (indice >= 0)
+                    {
+                        productos[indice] = productoActualizado;
+                    }
+                }
+
+                mensajeExito = "Producto actualizado correctamente.";
+                mostrarFormulario = false;
+                modoEdicion = false;
+            }
+            else
+            {
+                errorFormulario = await ObtenerMensajeError(response);
+            }
+        }
+        else
+        {
             var response = await client.PostAsJsonAsync(
                 "/api/productos",
                 nuevoProducto);
@@ -359,43 +458,66 @@ else
                 }
 
                 mensajeExito = "Producto creado correctamente.";
-
                 mostrarFormulario = false;
 
-                nuevoProducto = new CrearProductoDto
-                {
-                    EmpresaId = 1,
-                    CategoriaId = 1,
-                    UnidadMedidaId = 1,
-                    TipoProducto = "PRODUCTO",
-                    EsVendible = true,
-                    EsInventariable = true,
-                    EsIngrediente = false,
-                    CostoActual = 0,
-                    PrecioBase = 0,
-                    StockMinimo = 0,
-                    Activa = true
-                };
+                nuevoProducto = CrearProductoVacio();
             }
             else
             {
-                var contenido = await response.Content.ReadAsStringAsync();
-
-                errorFormulario =
-                    $"No fue posible crear el producto. " +
-                    $"Respuesta: {contenido}";
+                errorFormulario = await ObtenerMensajeError(response);
             }
         }
-        catch (Exception ex)
-        {
-            errorFormulario =
-                $"Error al comunicarse con la API: {ex.Message}";
-        }
-        finally
-        {
-            guardando = false;
-        }
     }
+    catch (Exception ex)
+    {
+        errorFormulario =
+            $"Error al comunicarse con la API: {ex.Message}";
+    }
+    finally
+    {
+        guardando = false;
+    }
+}
+private class MensajeErrorDto
+{
+    public string? Mensaje { get; set; }
+}
+private async Task<string> ObtenerMensajeError(HttpResponseMessage response)
+{
+    var contenido = await response.Content.ReadAsStringAsync();
+
+    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+    {
+        return "Los datos ingresados no son válidos. Revisa los campos del formulario.";
+    }
+
+    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+    {
+        return "El producto ya no existe.";
+    }
+
+    if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+    {
+        try
+        {
+            var error = await response.Content
+                .ReadFromJsonAsync<MensajeErrorDto>();
+    
+            if (!string.IsNullOrWhiteSpace(error?.Mensaje))
+            {
+                return error.Mensaje;
+            }
+        }
+        catch
+        {
+            // Si no podemos interpretar la respuesta,
+            // usamos un mensaje genérico.
+        }
+    
+        return "No se puede guardar el producto porque existe un registro duplicado.";
+    }
+    return "No fue posible guardar el producto. Intenta nuevamente.";
+}
 
     protected override async Task OnInitializedAsync()
     {
