@@ -1,7 +1,57 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+@using DaluERP.Web.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
 
-<h1>Hello, world!</h1>
+<h1>DaluERP</h1>
 
-Welcome to your new app.
+@if (AuthState.EstaAutenticado && AuthState.Usuario is not null)
+{
+    <h2>¡Bienvenido, @AuthState.Usuario.Nombre!</h2>
+
+    <p>
+        Correo: @AuthState.Usuario.Correo
+    </p>
+
+    <p>
+        Categoría: @AuthState.Usuario.CategoriaUsuario
+    </p>
+
+    <p>
+        Empresa actual:
+        @AuthState.Usuario.EmpresaActual?.Nombre
+    </p>
+
+    <p>
+        Rol:
+        @string.Join(", ", AuthState.Usuario.Roles)
+    </p>
+}
+else
+{
+    <p>No hay un usuario autenticado.</p>
+}
+
+<AuthorizeView>
+    <Authorized>
+        <h1>¡Bienvenido a DaluERP!</h1>
+
+        <p>Usuario autenticado correctamente.</p>
+
+        <p>
+            Usuario:
+            @context.User.Identity?.Name
+        </p>
+
+        <p>
+            Correo:
+            @context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+        </p>
+    </Authorized>
+
+    <NotAuthorized>
+        <h1>No autorizado</h1>
+    </NotAuthorized>
+</AuthorizeView>

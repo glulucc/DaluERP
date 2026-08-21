@@ -5,8 +5,40 @@ using DaluERP.Api.Models;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("No se configuró Jwt:Key.");
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey)),
+
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 
 builder.Services.AddDbContext<DaluERPDbContext>(options =>
@@ -29,6 +61,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 var summaries = new[]
 {
@@ -97,12 +132,205 @@ app.MapPost("/api/auth/login", async (
         return Results.Unauthorized();
     }
 
+
+var rolesInfo = await (
+    from ur in db.UsuariosRoles
+    join r in db.Roles
+        on ur.RolId equals r.RolId
+    where ur.UsuarioId == usuario.UsuarioId
+          && ur.Activo
+          && r.Activo
+    select new
+    {
+        r.Codigo,
+        r.EsGlobal
+    }
+)
+.Distinct()
+.ToListAsync();
+
+var roles = rolesInfo
+    .Select(r => r.Codigo)
+    .ToList();
+
+    var esGlobal = rolesInfo
+    .Any(r => r.EsGlobal);
+    
+    List<EmpresaLoginDto> empresas;
+
+        if (esGlobal)
+        {
+            empresas = await db.Empresas
+                .Where(e => e.Activa)
+                .OrderBy(e => e.Nombre)
+                .Select(e => new EmpresaLoginDto
+                {
+                    EmpresaId = e.EmpresaId,
+                    Nombre = e.Nombre
+                })
+                .ToListAsync();
+        }
+        else
+        {
+            empresas = await (
+                from ue in db.UsuariosEmpresas
+                join e in db.Empresas
+                    on ue.EmpresaId equals e.EmpresaId
+                where ue.UsuarioId == usuario.UsuarioId
+                    && ue.Activo
+                    && e.Activa
+                orderby e.Nombre
+                select new EmpresaLoginDto
+                {
+                    EmpresaId = e.EmpresaId,
+                    Nombre = e.Nombre
+                }
+            )
+            .Distinct()
+            .ToListAsync();
+        }
+
+      EmpresaLoginDto? empresaActual = null;
+
+        if (empresas.Count == 1)
+        {
+            empresaActual = empresas[0];
+        }
+
+    var permisos = await (
+        from ur in db.UsuariosRoles
+        join rp in db.RolesPermisos
+            on ur.RolId equals rp.RolId
+        join p in db.Permisos
+            on rp.PermisoId equals p.PermisoId
+        where ur.UsuarioId == usuario.UsuarioId
+              && ur.Activo
+              && p.Activo
+        select p.Codigo
+    )
+    .Distinct()
+    .OrderBy(p => p)
+    .ToListAsync();
+
+    var categoriaUsuario = await db.CategoriasUsuarios
+    .Where(c => c.CategoriaUsuarioId == usuario.CategoriaUsuarioId)
+    .Select(c => new
+    {
+        c.Codigo,
+        c.Nombre
+    })
+    .FirstOrDefaultAsync();
+
+var claims = new List<Claim>
+{
+    new(JwtRegisteredClaimNames.Sub, usuario.UsuarioId.ToString()),
+    new(ClaimTypes.NameIdentifier, usuario.UsuarioId.ToString()),
+    new(ClaimTypes.Name, usuario.Nombre),
+    new(ClaimTypes.Email, usuario.Correo),
+    new("es_global", esGlobal.ToString().ToLowerInvariant())
+};
+
+if (empresaActual is not null)
+{
+    claims.Add(
+        new Claim(
+            "empresa_actual_id",
+            empresaActual.EmpresaId.ToString()));
+}
+
+var signingKey = new SymmetricSecurityKey(
+    Encoding.UTF8.GetBytes(jwtKey));
+
+var credentials = new SigningCredentials(
+    signingKey,
+    SecurityAlgorithms.HmacSha256);
+
+var expirationMinutes =
+    builder.Configuration.GetValue<int>("Jwt:ExpirationMinutes", 60);
+
+var token = new JwtSecurityToken(
+    issuer: builder.Configuration["Jwt:Issuer"],
+    audience: builder.Configuration["Jwt:Audience"],
+    claims: claims,
+    expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
+    signingCredentials: credentials);
+
+var tokenString = new JwtSecurityTokenHandler()
+    .WriteToken(token);
+
+
+
+
+
+    var respuesta = new LoginResponse
+    {
+        UsuarioId = usuario.UsuarioId,
+        Nombre = usuario.Nombre,
+        Correo = usuario.Correo,
+        CategoriaUsuario = categoriaUsuario?.Codigo ?? string.Empty,
+        EsGlobal = esGlobal,
+        Roles = roles,
+        Permisos = permisos,
+        Empresas = empresas,
+        EmpresaActual = empresaActual,
+        Token = tokenString
+    };
+
+    
+
+    return Results.Ok(respuesta);
+});
+
+app.MapGet("/api/auth/prueba-seguridad", async (
+    DaluERPDbContext db) =>
+{
+    var usuarioId = 1L;
+
+    var roles = await (
+        from ur in db.UsuariosRoles
+        join r in db.Roles
+            on ur.RolId equals r.RolId
+        where ur.UsuarioId == usuarioId
+              && ur.Activo
+              && r.Activo
+        select new
+        {
+            r.RolId,
+            r.Codigo,
+            r.Nombre,
+            r.EsGlobal,
+            r.EmpresaId
+        })
+        .ToListAsync();
+
+    var permisos = await (
+        from ur in db.UsuariosRoles
+        join rp in db.RolesPermisos
+            on ur.RolId equals rp.RolId
+        join p in db.Permisos
+            on rp.PermisoId equals p.PermisoId
+        where ur.UsuarioId == usuarioId
+              && ur.Activo
+              && p.Activo
+        select new
+        {
+            p.PermisoId,
+            p.Codigo,
+            p.Nombre,
+            p.Modulo
+        })
+        .Distinct()
+        .OrderBy(p => p.Modulo)
+        .ThenBy(p => p.Codigo)
+        .ToListAsync();
+
     return Results.Ok(new
     {
-        mensaje = "Autenticación correcta.",
-        usuario.UsuarioId,
-        usuario.Nombre,
-        usuario.Correo
+        usuarioId,
+        roles,
+        cantidadRoles = roles.Count,
+        permisos,
+        cantidadPermisos = permisos.Count
     });
 });
 

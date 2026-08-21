@@ -29,6 +29,11 @@ public class DaluERPDbContext : DbContext
 
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
 
+    public DbSet<CategoriaUsuario> CategoriasUsuarios => Set<CategoriaUsuario>();
+
+    public DbSet<UsuarioEmpresa> UsuariosEmpresas => Set<UsuarioEmpresa>();
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -147,6 +152,138 @@ public class DaluERPDbContext : DbContext
             entity.Property(e => e.ActualizadoEn)
                 .HasColumnName("actualizado_en");
         });
+        modelBuilder.Entity<Rol>(entity =>
+        {
+            entity.ToTable("rol", "seguridad");
+
+            entity.HasKey(e => e.RolId);
+
+            entity.Property(e => e.RolId)
+                .HasColumnName("rol_id");
+
+            entity.Property(e => e.EmpresaId)
+                .HasColumnName("empresa_id");
+
+            entity.Property(e => e.Codigo)
+                .HasColumnName("codigo");
+
+            entity.Property(e => e.Nombre)
+                .HasColumnName("nombre");
+
+            entity.Property(e => e.Descripcion)
+                .HasColumnName("descripcion");
+
+            entity.Property(e => e.EsGlobal)
+                .HasColumnName("es_global");
+
+            entity.Property(e => e.Activo)
+                .HasColumnName("activo");
+        });
+
+        modelBuilder.Entity<Permiso>(entity =>
+        {
+            entity.ToTable("permiso", "seguridad");
+
+            entity.HasKey(e => e.PermisoId);
+
+            entity.Property(e => e.PermisoId)
+                .HasColumnName("permiso_id");
+
+            entity.Property(e => e.Codigo)
+                .HasColumnName("codigo");
+
+            entity.Property(e => e.Nombre)
+                .HasColumnName("nombre");
+
+            entity.Property(e => e.Modulo)
+                .HasColumnName("modulo");
+
+            entity.Property(e => e.Descripcion)
+                .HasColumnName("descripcion");
+
+            entity.Property(e => e.Activo)
+                .HasColumnName("activo");
+        });
+
+        modelBuilder.Entity<UsuarioRol>(entity =>
+        {
+            entity.ToTable("usuario_rol", "seguridad");
+
+            entity.HasKey(e => e.UsuarioRolId);
+
+            entity.Property(e => e.UsuarioRolId)
+                .HasColumnName("usuario_rol_id");
+
+            entity.Property(e => e.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.Property(e => e.RolId)
+                .HasColumnName("rol_id");
+
+            entity.Property(e => e.Activo)
+                .HasColumnName("activo");
+        });
+
+        modelBuilder.Entity<RolPermiso>(entity =>
+        {
+            entity.ToTable("rol_permiso", "seguridad");
+
+            entity.HasKey(e => new
+            {
+                e.RolId,
+                e.PermisoId
+            });
+
+            entity.Property(e => e.RolId)
+                .HasColumnName("rol_id");
+
+            entity.Property(e => e.PermisoId)
+                .HasColumnName("permiso_id");
+        });
+
+modelBuilder.Entity<CategoriaUsuario>(entity =>
+{
+    entity.ToTable("categoria_usuario", "seguridad");
+
+    entity.HasKey(e => e.CategoriaUsuarioId);
+
+    entity.Property(e => e.CategoriaUsuarioId)
+        .HasColumnName("categoria_usuario_id");
+
+    entity.Property(e => e.Codigo)
+        .HasColumnName("codigo");
+
+    entity.Property(e => e.Nombre)
+        .HasColumnName("nombre");
+
+    entity.Property(e => e.Descripcion)
+        .HasColumnName("descripcion");
+
+    entity.Property(e => e.Activa)
+        .HasColumnName("activa");
+});
+
+modelBuilder.Entity<UsuarioEmpresa>(entity =>
+{
+    entity.ToTable("usuario_empresa", "seguridad");
+
+    entity.HasKey(e => e.UsuarioEmpresaId);
+
+    entity.Property(e => e.UsuarioEmpresaId)
+        .HasColumnName("usuario_empresa_id");
+
+    entity.Property(e => e.UsuarioId)
+        .HasColumnName("usuario_id");
+
+    entity.Property(e => e.EmpresaId)
+        .HasColumnName("empresa_id");
+
+    entity.Property(e => e.EsPrincipal)
+        .HasColumnName("es_principal");
+
+    entity.Property(e => e.Activo)
+        .HasColumnName("activo");
+});
 
         modelBuilder.Entity<Empresa>(entity =>
         {

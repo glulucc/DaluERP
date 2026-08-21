@@ -1,4 +1,4 @@
-namespace DaluERP.Api.DTOs;
+namespace DaluERP.Web.DTOs;
 
 public class LoginResponse
 {
@@ -20,6 +20,5 @@ public class LoginResponse
 
     public EmpresaLoginDto? EmpresaActual { get; set; }
 
-    public string Token { get; set; } = string.Empty;   
-
+    public string Token { get; set; } = string.Empty;
 }

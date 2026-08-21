@@ -1,5 +1,6 @@
 using DaluERP.Web.Components;
 using DaluERP.Web.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,17 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddScoped<EmpresaContext>();
 
+builder.Services.AddScoped<AuthService>();
+
+builder.Services.AddScoped<AuthState>();
+
+builder.Services.AddAuthorizationCore();
+
+builder.Services.AddScoped<DaluERPAuthenticationStateProvider>();
+
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
+    sp.GetRequiredService<DaluERPAuthenticationStateProvider>());
+    
 
 // URL de nuestra API
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"]
