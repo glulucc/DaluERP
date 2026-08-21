@@ -688,3 +688,484 @@ JOIN ventas.venta_detalle vd
 JOIN catalogo.producto p
     ON p.producto_id = vd.producto_id
 WHERE v.numero_documento = 'VENTA-0001';
+
+
+
+-- para montar el codigo
+SELECT
+    column_name,
+    data_type,
+    is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'catalogo'
+  AND table_name = 'producto'
+ORDER BY ordinal_position;
+
+
+SELECT
+    column_name,
+    constraint_name
+FROM information_schema.key_column_usage
+WHERE table_schema = 'catalogo'
+  AND table_name = 'producto'
+ORDER BY ordinal_position;
+
+
+SELECT
+    column_name,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = 'catalogo'
+  AND table_name = 'producto'
+ORDER BY ordinal_position;
+
+
+SELECT
+    column_name,
+    data_type,
+    column_default,
+    is_identity
+FROM information_schema.columns
+WHERE table_schema = 'catalogo'
+  AND table_name = 'producto'
+  AND column_name = 'producto_id';
+
+
+  SELECT
+    pg_get_serial_sequence('catalogo.producto', 'producto_id');
+
+UPDATE catalogo.producto
+SET
+    creado_en = CURRENT_TIMESTAMP,
+    actualizado_en = CURRENT_TIMESTAMP
+WHERE producto_id = 2;
+
+
+select * from catalogo.producto;
+
+
+SELECT table_schema, table_name
+FROM information_schema.tables
+WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+ORDER BY table_schema, table_name;
+
+
+
+SELECT
+    table_schema,
+    table_name,
+    column_name,
+    data_type
+FROM information_schema.columns
+WHERE
+    (table_schema = 'configuracion' AND table_name = 'empresa')
+    OR
+    (table_schema = 'catalogo' AND table_name = 'categoria')
+    OR
+    (table_schema = 'catalogo' AND table_name = 'unidad_medida')
+ORDER BY
+    table_schema,
+    table_name,
+    ordinal_position;
+
+
+
+	SELECT schema_name
+FROM information_schema.schemata
+WHERE schema_name = 'seguridad';
+
+
+
+SELECT *
+FROM seguridad.categoria_usuario;
+
+
+SELECT *
+FROM seguridad.usuario;
+
+UPDATE seguridad.usuario
+SET password_hash = 'AQAAAAIAAYagAAAAEMnumzsSXWk1SSMuwXT2805zVzvzsOidMjYijcNFjQqZr+ShX8RDGHcvBWjiNVqgvw=='
+WHERE usuario_id = 1
+  AND correo_normalizado = 'ADMIN@DALUERP.LOCAL';
+
+SELECT
+    usuario_id,
+    correo,
+    password_hash,
+    activa
+FROM seguridad.usuario
+WHERE usuario_id = 1;
+
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'seguridad'
+ORDER BY table_name;
+
+
+
+INSERT INTO seguridad.categoria_usuario
+    (codigo, nombre, descripcion)
+VALUES
+    ('ADMINISTRACION', 'Administración', 'Personal administrativo y de gestión.'),
+    ('VENTAS', 'Ventas', 'Personal encargado de ventas y atención comercial.'),
+    ('COCINA', 'Cocina', 'Personal encargado de cocina y producción.'),
+    ('TRANSPORTE', 'Transporte', 'Personal encargado de transporte y entregas.'),
+    ('INVENTARIO', 'Inventario', 'Personal encargado de inventarios y bodegas.'),
+    ('COMPRAS', 'Compras', 'Personal encargado de compras y proveedores.'),
+    ('CONTABILIDAD', 'Contabilidad', 'Personal encargado de procesos contables y financieros.'),
+    ('OTRO', 'Otro', 'Personal que no pertenece a una categoría específica.');
+
+
+
+SELECT
+    categoria_usuario_id,
+    codigo,
+    nombre,
+    activa
+FROM seguridad.categoria_usuario
+ORDER BY categoria_usuario_id;
+
+
+
+INSERT INTO seguridad.permiso
+    (codigo, nombre, modulo, descripcion)
+VALUES
+
+-- PRODUCTOS
+('PRODUCTOS_VER',        'Ver productos',        'PRODUCTOS', 'Permite consultar productos.'),
+('PRODUCTOS_CREAR',      'Crear productos',      'PRODUCTOS', 'Permite crear productos.'),
+('PRODUCTOS_EDITAR',     'Editar productos',     'PRODUCTOS', 'Permite modificar productos.'),
+('PRODUCTOS_ELIMINAR',   'Eliminar productos',   'PRODUCTOS', 'Permite eliminar productos.'),
+
+-- CLIENTES
+('CLIENTES_VER',         'Ver clientes',         'CLIENTES', 'Permite consultar clientes.'),
+('CLIENTES_CREAR',       'Crear clientes',       'CLIENTES', 'Permite crear clientes.'),
+('CLIENTES_EDITAR',      'Editar clientes',      'CLIENTES', 'Permite modificar clientes.'),
+('CLIENTES_ELIMINAR',    'Eliminar clientes',    'CLIENTES', 'Permite eliminar clientes.'),
+
+-- PROVEEDORES
+('PROVEEDORES_VER',      'Ver proveedores',      'PROVEEDORES', 'Permite consultar proveedores.'),
+('PROVEEDORES_CREAR',    'Crear proveedores',    'PROVEEDORES', 'Permite crear proveedores.'),
+('PROVEEDORES_EDITAR',   'Editar proveedores',   'PROVEEDORES', 'Permite modificar proveedores.'),
+('PROVEEDORES_ELIMINAR', 'Eliminar proveedores', 'PROVEEDORES', 'Permite eliminar proveedores.'),
+
+-- VENTAS
+('VENTAS_VER',           'Ver ventas',           'VENTAS', 'Permite consultar ventas.'),
+('VENTAS_CREAR',         'Crear ventas',         'VENTAS', 'Permite registrar ventas.'),
+('VENTAS_EDITAR',        'Editar ventas',        'VENTAS', 'Permite modificar ventas.'),
+('VENTAS_ANULAR',        'Anular ventas',        'VENTAS', 'Permite anular ventas.'),
+
+-- COMPRAS
+('COMPRAS_VER',          'Ver compras',          'COMPRAS', 'Permite consultar compras.'),
+('COMPRAS_CREAR',        'Crear compras',        'COMPRAS', 'Permite registrar compras.'),
+('COMPRAS_EDITAR',       'Editar compras',       'COMPRAS', 'Permite modificar compras.'),
+('COMPRAS_ANULAR',       'Anular compras',       'COMPRAS', 'Permite anular compras.'),
+
+-- INVENTARIO
+('INVENTARIO_VER',       'Ver inventario',       'INVENTARIO', 'Permite consultar existencias e inventario.'),
+('INVENTARIO_AJUSTAR',   'Ajustar inventario',   'INVENTARIO', 'Permite realizar ajustes de inventario.'),
+('INVENTARIO_ENTRADAS',  'Registrar entradas',   'INVENTARIO', 'Permite registrar entradas de inventario.'),
+('INVENTARIO_SALIDAS',   'Registrar salidas',    'INVENTARIO', 'Permite registrar salidas de inventario.'),
+
+-- USUARIOS
+('USUARIOS_VER',         'Ver usuarios',         'USUARIOS', 'Permite consultar usuarios.'),
+('USUARIOS_CREAR',       'Crear usuarios',       'USUARIOS', 'Permite crear usuarios.'),
+('USUARIOS_EDITAR',      'Editar usuarios',      'USUARIOS', 'Permite modificar usuarios.'),
+('USUARIOS_DESACTIVAR',  'Desactivar usuarios',  'USUARIOS', 'Permite desactivar usuarios.'),
+
+-- EMPRESAS
+('EMPRESAS_VER',         'Ver empresas',         'EMPRESAS', 'Permite consultar empresas.'),
+('EMPRESAS_CREAR',       'Crear empresas',       'EMPRESAS', 'Permite crear empresas.'),
+('EMPRESAS_EDITAR',      'Editar empresas',      'EMPRESAS', 'Permite modificar empresas.'),
+('EMPRESAS_DESACTIVAR',  'Desactivar empresas',  'EMPRESAS', 'Permite desactivar empresas.'),
+
+-- ROLES
+('ROLES_VER',            'Ver roles',            'SEGURIDAD', 'Permite consultar roles.'),
+('ROLES_CREAR',          'Crear roles',          'SEGURIDAD', 'Permite crear roles.'),
+('ROLES_EDITAR',         'Editar roles',         'SEGURIDAD', 'Permite modificar roles.'),
+('ROLES_ELIMINAR',       'Eliminar roles',       'SEGURIDAD', 'Permite eliminar roles.'),
+
+-- PERMISOS
+('PERMISOS_VER',         'Ver permisos',         'SEGURIDAD', 'Permite consultar permisos.');
+
+
+
+
+SELECT
+    permiso_id,
+    codigo,
+    nombre,
+    modulo,
+    activo
+FROM seguridad.permiso
+ORDER BY permiso_id;
+
+
+
+INSERT INTO seguridad.rol
+    (empresa_id, codigo, nombre, descripcion, es_global, activo)
+VALUES
+    (
+        NULL,
+        'SUPERADMIN',
+        'Super Administrador',
+        'Administrador global de DaluERP con acceso a todas las empresas y funciones del sistema.',
+        TRUE,
+        TRUE
+    );
+
+
+SELECT
+    rol_id,
+    empresa_id,
+    codigo,
+    nombre,
+    es_global,
+    activo
+FROM seguridad.rol
+WHERE codigo = 'SUPERADMIN';
+
+
+SELECT COUNT(*)
+FROM seguridad.permiso
+WHERE activo = TRUE;
+
+
+SELECT
+    permiso_id,
+    codigo,
+    nombre,
+    modulo
+FROM seguridad.permiso
+ORDER BY permiso_id;
+
+
+SELECT codigo
+FROM seguridad.permiso
+ORDER BY codigo;
+
+
+
+--Ahora asignamos los 37 al SUPERADMIN
+
+--Como queremos que SUPERADMIN tenga acceso total, podemos hacerlo de una vez:
+
+INSERT INTO seguridad.rol_permiso (rol_id, permiso_id)
+SELECT
+    r.rol_id,
+    p.permiso_id
+FROM seguridad.rol r
+CROSS JOIN seguridad.permiso p
+WHERE r.codigo = 'SUPERADMIN'
+  AND p.activo = TRUE;
+
+
+SELECT COUNT(*) AS cantidad_permisos
+FROM seguridad.rol_permiso rp
+INNER JOIN seguridad.rol r
+    ON r.rol_id = rp.rol_id
+WHERE r.codigo = 'SUPERADMIN';
+
+SELECT
+    r.codigo AS rol,
+    p.codigo AS permiso,
+    p.modulo
+FROM seguridad.rol_permiso rp
+INNER JOIN seguridad.rol r
+    ON r.rol_id = rp.rol_id
+INNER JOIN seguridad.permiso p
+    ON p.permiso_id = rp.permiso_id
+WHERE r.codigo = 'SUPERADMIN'
+ORDER BY p.modulo, p.codigo;
+
+
+
+INSERT INTO seguridad.usuario
+    (
+        categoria_usuario_id,
+        nombre,
+        correo,
+        correo_normalizado,
+        password_hash,
+        activa
+    )
+VALUES
+    (
+        (
+            SELECT categoria_usuario_id
+            FROM seguridad.categoria_usuario
+            WHERE codigo = 'ADMINISTRACION'
+        ),
+        'Super Administrador',
+        'admin@daluerp.local',
+        'ADMIN@DALUERP.LOCAL',
+        'PENDIENTE_DE_HASH',
+        TRUE
+    );
+
+
+	SELECT
+    usuario_id,
+    nombre,
+    correo,
+    activa
+FROM seguridad.usuario
+WHERE correo_normalizado = 'ADMIN@DALUERP.LOCAL';
+
+
+INSERT INTO seguridad.usuario_rol
+    (usuario_id, rol_id)
+SELECT
+    u.usuario_id,
+    r.rol_id
+FROM seguridad.usuario u
+CROSS JOIN seguridad.rol r
+WHERE u.correo_normalizado = 'ADMIN@DALUERP.LOCAL'
+  AND r.codigo = 'SUPERADMIN'
+  AND r.es_global = TRUE;
+
+
+  SELECT
+    u.nombre AS usuario,
+    u.correo,
+    r.codigo AS rol,
+    r.nombre AS nombre_rol,
+    r.es_global
+FROM seguridad.usuario_rol ur
+INNER JOIN seguridad.usuario u
+    ON u.usuario_id = ur.usuario_id
+INNER JOIN seguridad.rol r
+    ON r.rol_id = ur.rol_id;
+
+
+
+	INSERT INTO seguridad.rol
+    (empresa_id, codigo, nombre, descripcion, es_global, activo)
+VALUES
+    (
+        NULL,
+        'ADMIN_EMPRESA',
+        'Administrador de Empresa',
+        'Administrador con control sobre la operación de una empresa.',
+        TRUE,
+        TRUE
+    ),
+    (
+        NULL,
+        'ADMINISTRATIVO',
+        'Administrativo',
+        'Usuario encargado de tareas administrativas.',
+        TRUE,
+        TRUE
+    ),
+    (
+        NULL,
+        'VENDEDOR',
+        'Vendedor',
+        'Usuario encargado de ventas y atención a clientes.',
+        TRUE,
+        TRUE
+    ),
+    (
+        NULL,
+        'SUPERVISOR_VENTAS',
+        'Supervisor de Ventas',
+        'Usuario encargado de supervisar las operaciones de ventas.',
+        TRUE,
+        TRUE
+    ),
+    (
+        NULL,
+        'COCINERO',
+        'Cocinero',
+        'Usuario encargado de operaciones de cocina y producción.',
+        TRUE,
+        TRUE
+    ),
+    (
+        NULL,
+        'INVENTARIO',
+        'Encargado de Inventario',
+        'Usuario encargado del control y movimientos de inventario.',
+        TRUE,
+        TRUE
+    ),
+    (
+        NULL,
+        'COMPRAS',
+        'Encargado de Compras',
+        'Usuario encargado de compras y proveedores.',
+        TRUE,
+        TRUE
+    ),
+    (
+        NULL,
+        'TRANSPORTE',
+        'Transportista',
+        'Usuario encargado de transporte y entregas.',
+        TRUE,
+        TRUE
+    );
+
+
+	SELECT
+    rol_id,
+    empresa_id,
+    codigo,
+    nombre,
+    es_global,
+    activo
+FROM seguridad.rol
+ORDER BY rol_id;
+
+
+SELECT
+    r.codigo AS rol,
+    r.nombre,
+    r.es_global,
+    COUNT(rp.permiso_id) AS cantidad_permisos
+FROM seguridad.rol r
+LEFT JOIN seguridad.rol_permiso rp
+    ON rp.rol_id = r.rol_id
+GROUP BY
+    r.rol_id,
+    r.codigo,
+    r.nombre,
+    r.es_global
+ORDER BY r.rol_id;
+
+SELECT
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = 'seguridad'
+  AND table_name = 'categoria_usuario'
+ORDER BY ordinal_position;
+
+SELECT
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = 'seguridad'
+  AND table_name = 'usuario'
+ORDER BY ordinal_position;
+
+
+
+SELECT
+    u.nombre AS usuario,
+    u.correo,
+    r.codigo AS rol,
+    r.nombre AS nombre_rol,
+    r.es_global
+FROM seguridad.usuario_rol ur
+INNER JOIN seguridad.usuario u
+    ON u.usuario_id = ur.usuario_id
+INNER JOIN seguridad.rol r
+    ON r.rol_id = ur.rol_id
+WHERE u.correo_normalizado = 'ADMIN@DALUERP.LOCAL';

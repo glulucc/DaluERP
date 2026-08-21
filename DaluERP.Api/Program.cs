@@ -3,13 +3,17 @@ using Microsoft.EntityFrameworkCore;
 using DaluERP.Api.DTOs;
 using DaluERP.Api.Models;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 builder.Services.AddDbContext<DaluERPDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DaluERP")));
 
+builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -67,6 +71,42 @@ app.MapGet("/api/health/database", async (DaluERPDbContext db) =>
     });
 });
 
+app.MapPost("/api/auth/login", async (
+    LoginRequest request,
+    DaluERPDbContext db,
+    IPasswordHasher<Usuario> passwordHasher) =>
+{
+    var correoNormalizado = request.Correo.Trim().ToUpperInvariant();
+
+    var usuario = await db.Usuarios
+        .FirstOrDefaultAsync(u =>
+            u.CorreoNormalizado == correoNormalizado);
+
+    if (usuario is null || !usuario.Activa)
+    {
+        return Results.Unauthorized();
+    }
+
+    var resultado = passwordHasher.VerifyHashedPassword(
+        usuario,
+        usuario.PasswordHash,
+        request.Password);
+
+    if (resultado == PasswordVerificationResult.Failed)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(new
+    {
+        mensaje = "Autenticación correcta.",
+        usuario.UsuarioId,
+        usuario.Nombre,
+        usuario.Correo
+    });
+});
+
+
 /*--------------------------------------------------------------*
  *---------logica para categoria PRODUCTOS----------------------*
  *--------------------------------------------------------------*/
@@ -95,6 +135,64 @@ app.MapGet("/api/productos/{id}", async (
     return Results.Ok(producto);
 });
 
+app.MapGet("/api/empresas", async (DaluERPDbContext db) =>
+{
+    var empresas = await db.Empresas
+        .Where(e => e.Activa)
+        .OrderBy(e => e.Nombre)
+        .Select(e => new
+        {
+            e.EmpresaId,
+            e.Nombre
+        })
+        .ToListAsync();
+
+    return Results.Ok(empresas);
+});
+
+app.MapGet("/api/categorias", async (
+    long empresaId,
+    DaluERPDbContext db) =>
+{
+    var categorias = await db.Categorias
+        .Where(c => c.EmpresaId == empresaId && c.Activa)
+        .OrderBy(c => c.Nombre)
+        .ToListAsync();
+
+    return Results.Ok(categorias);
+});
+
+/*app.MapGet("/api/categorias", async (DaluERPDbContext db) =>
+{
+    var categorias = await db.Categorias
+        .Where(c => c.Activa)
+        .OrderBy(c => c.Nombre)
+        .Select(c => new
+        {
+            c.CategoriaId,
+            c.EmpresaId,
+            c.Nombre
+        })
+        .ToListAsync();
+
+    return Results.Ok(categorias);
+});*/
+
+app.MapGet("/api/unidades-medida", async (DaluERPDbContext db) =>
+{
+    var unidades = await db.UnidadesMedida
+        .Where(u => u.Activa)
+        .OrderBy(u => u.Nombre)
+        .Select(u => new
+        {
+            u.UnidadMedidaId,
+            u.Nombre,
+            u.Abreviatura
+        })
+        .ToListAsync();
+
+    return Results.Ok(unidades);
+});
 
 app.MapPost("/api/productos", async (
     CrearProductoRequest request,
@@ -249,6 +347,7 @@ app.MapPut("/api/productos/{id}", async (
     // 7. Responder
     return Results.Ok(producto);
 });
+
 
 
 app.Run();

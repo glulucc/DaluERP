@@ -1,10 +1,14 @@
 using DaluERP.Web.Components;
+using DaluERP.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Servicios de Razor/Blazor
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddScoped<EmpresaContext>();
+
 
 // URL de nuestra API
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"]

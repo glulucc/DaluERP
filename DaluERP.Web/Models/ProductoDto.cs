@@ -40,3 +40,8 @@ public class ProductoDto
 
     public DateTimeOffset ActualizadoEn { get; set; }
 }
+public class ErrorValidacionDto
+{
+    public List<string> MemberNames { get; set; } = new();
+    public string ErrorMessage { get; set; } = string.Empty;
+}

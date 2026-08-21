@@ -1,296 +1,338 @@
 @page "/productos"
 
 @using DaluERP.Web.Models
+@using DaluERP.Web.Services
 @using System.Net.Http.Json
 @inject IHttpClientFactory HttpClientFactory
+@inject EmpresaContext EmpresaContext
 
 <PageTitle>Productos - DaluERP</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1>Productos</h1>
-        <p class="text-muted mb-0">
-            Consulta y administración de productos
-        </p>
-    </div>
+<p>
+    Empresa actual:
+    <strong>@EmpresaContext.EmpresaId</strong>
+</p>
 
-    <button class="btn btn-primary" @onclick="MostrarFormulario">
-        + Nuevo producto
-    </button>
+<button class="btn btn-primary"
+        @onclick="SeleccionarEmpresaPrueba">
+    Usar empresa 1
+</button>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+<div>
+<h1>Productos</h1>
+<p class="text-muted mb-0">
+Consulta y administración de productos
+</p>
+</div>
+
+
+
+<button class="btn btn-primary" @onclick="MostrarFormulario">
++ Nuevo producto
+</button>
 </div>
 
 @if (mostrarFormulario)
 {
-    <div class="card mb-4">
-        <div class="card-header">
-            <strong>@(modoEdicion ? "Editar producto" : "Nuevo producto")</strong>
-        </div>
+<div class="card mb-4">
+<div class="card-header">
+<strong>@(modoEdicion ? "Editar producto" : "Nuevo producto")</strong>
+</div>
 
-        <div class="card-body">
+<div class="card-body">
 
-            @if (!string.IsNullOrEmpty(mensajeExito))
-            {
-                <div class="alert alert-success">
-                    @mensajeExito
-                </div>
-            }
+@if (!string.IsNullOrEmpty(mensajeExito))
+{
+<div class="alert alert-success">
+@mensajeExito
+</div>
+}
 
-            @if (!string.IsNullOrEmpty(errorFormulario))
-            {
-                <div class="alert alert-danger">
-                    @errorFormulario
-                </div>
-            }
+@if (!string.IsNullOrEmpty(errorFormulario))
+{
+<div class="alert alert-danger">
+@errorFormulario
+</div>
+}
 
-            <div class="row g-3">
+<div class="row g-3">
 
-                <div class="col-md-4">
-                    <label class="form-label">Código</label>
-                    <input class="form-control"
-                           @bind="nuevoProducto.Codigo" />
-                </div>
+<div class="col-md-4">
+<label class="form-label">Código(*)</label>
+<input class="form-control"
+@bind="nuevoProducto.Codigo" />
+</div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Código de barras</label>
-                    <input class="form-control"
-                           @bind="nuevoProducto.CodigoBarras" />
-                </div>
+<div class="col-md-4">
+<label class="form-label">Código de barras</label>
+<input class="form-control"
+@bind="nuevoProducto.CodigoBarras" />
+</div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Nombre</label>
-                    <input class="form-control"
-                           @bind="nuevoProducto.Nombre" />
-                </div>
+<div class="col-md-4">
+<label class="form-label">Nombre(*)</label>
+<input class="form-control"
+@bind="nuevoProducto.Nombre" />
+</div>
 
-                <div class="col-12">
-                    <label class="form-label">Descripción</label>
-                    <textarea class="form-control"
-                              rows="2"
-                              @bind="nuevoProducto.Descripcion">
-                    </textarea>
-                </div>
+<div class="col-12">
+<label class="form-label">Descripción</label>
+<textarea class="form-control"
+rows="2"
+@bind="nuevoProducto.Descripcion">
+</textarea>
+</div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Empresa</label>
-                    <input type="number"
-                           class="form-control"
-                           @bind="nuevoProducto.EmpresaId" />
-                </div>
+<div class="col-md-4">
+    <label class="form-label">Empresa</label>
+    <select class="form-select" @bind="nuevoProducto.EmpresaId">
+        <option value="0">Seleccione una empresa</option>
 
-                <div class="col-md-4">
-                    <label class="form-label">Categoría</label>
-                    <input type="number"
-                           class="form-control"
-                           @bind="nuevoProducto.CategoriaId" />
-                </div>
+        @foreach (var empresa in empresas)
+        {
+            <option value="@empresa.EmpresaId">
+                @empresa.Nombre
+            </option>
+        }
+    </select>
+</div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Unidad de medida</label>
-                    <input type="number"
-                           class="form-control"
-                           @bind="nuevoProducto.UnidadMedidaId" />
-                </div>
+<div class="col-md-4">
+    <label class="form-label">Categoría</label>
+    <select class="form-select" @bind="nuevoProducto.CategoriaId">
+        <option value="0">Seleccione una categoría</option>
 
-                <div class="col-md-4">
-                    <label class="form-label">Tipo de producto</label>
-                    <input class="form-control"
-                           @bind="nuevoProducto.TipoProducto" />
-                </div>
+        @foreach (var categoria in categorias)
+        {
+            <option value="@categoria.CategoriaId">
+                @categoria.Nombre
+            </option>
+        }
+    </select>
+</div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Costo actual</label>
-                    <input type="number"
-                           step="0.01"
-                           class="form-control"
-                           @bind="nuevoProducto.CostoActual" />
-                </div>
+<div class="col-md-4">
+    <label class="form-label">Unidad de medida</label>
+    <select class="form-select" @bind="nuevoProducto.UnidadMedidaId">
+        <option value="0">Seleccione una unidad</option>
 
-                <div class="col-md-4">
-                    <label class="form-label">Precio base</label>
-                    <input type="number"
-                           step="0.01"
-                           class="form-control"
-                           @bind="nuevoProducto.PrecioBase" />
-                </div>
+        @foreach (var unidad in unidadesMedida)
+        {
+            <option value="@unidad.UnidadMedidaId">
+                @unidad.Nombre
+                @if (!string.IsNullOrWhiteSpace(unidad.Abreviatura))
+                {
+                    <text> (@unidad.Abreviatura)</text>
+                }
+            </option>
+        }
+    </select>
+</div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Stock mínimo</label>
-                    <input type="number"
-                           step="0.01"
-                           class="form-control"
-                           @bind="nuevoProducto.StockMinimo" />
-                </div>
+<div class="col-md-4">
+<label class="form-label">Tipo de producto</label>
+<input class="form-control"
+@bind="nuevoProducto.TipoProducto" />
+</div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Stock máximo</label>
-                    <input type="number"
-                           step="0.01"
-                           class="form-control"
-                           @bind="nuevoProducto.StockMaximo" />
-                </div>
+<div class="col-md-4">
+<label class="form-label">Costo actual</label>
+<input type="number"
+step="0.01"
+class="form-control"
+@bind="nuevoProducto.CostoActual" />
+</div>
 
-                <div class="col-md-12">
+<div class="col-md-4">
+<label class="form-label">Precio base</label>
+<input type="number"
+step="0.01"
+class="form-control"
+@bind="nuevoProducto.PrecioBase" />
+</div>
 
-                    <div class="form-check">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               @bind="nuevoProducto.EsVendible" />
-                        <label class="form-check-label">
-                            Es vendible
-                        </label>
-                    </div>
+<div class="col-md-4">
+<label class="form-label">Stock mínimo</label>
+<input type="number"
+step="0.01"
+class="form-control"
+@bind="nuevoProducto.StockMinimo" />
+</div>
 
-                    <div class="form-check">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               @bind="nuevoProducto.EsInventariable" />
-                        <label class="form-check-label">
-                            Es inventariable
-                        </label>
-                    </div>
+<div class="col-md-4">
+<label class="form-label">Stock máximo</label>
+<input type="number"
+step="0.01"
+class="form-control"
+@bind="nuevoProducto.StockMaximo" />
+</div>
 
-                    <div class="form-check">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               @bind="nuevoProducto.EsIngrediente" />
-                        <label class="form-check-label">
-                            Es ingrediente
-                        </label>
-                    </div>
+<div class="col-md-12">
 
-                    <div class="form-check">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               @bind="nuevoProducto.Activa" />
-                        <label class="form-check-label">
-                            Activo
-                        </label>
-                    </div>
+<div class="form-check">
+<input class="form-check-input"
+type="checkbox"
+@bind="nuevoProducto.EsVendible" />
+<label class="form-check-label">
+Es vendible
+</label>
+</div>
 
-                </div>
+<div class="form-check">
+<input class="form-check-input"
+type="checkbox"
+@bind="nuevoProducto.EsInventariable" />
+<label class="form-check-label">
+Es inventariable
+</label>
+</div>
 
-            </div>
+<div class="form-check">
+<input class="form-check-input"
+type="checkbox"
+@bind="nuevoProducto.EsIngrediente" />
+<label class="form-check-label">
+Es ingrediente
+</label>
+</div>
 
-            <div class="mt-4">
-                <button class="btn btn-primary me-2"
-                        @onclick="GuardarProducto"
-                        disabled="@guardando">
-                    @(guardando
-                        ? "Guardando..."
-                        : (modoEdicion ? "Guardar cambios" : "Guardar"))
-                </button>
+<div class="form-check">
+<input class="form-check-input"
+type="checkbox"
+@bind="nuevoProducto.Activa" />
+<label class="form-check-label">
+Activo
+</label>
+</div>
 
-                <button class="btn btn-secondary"
-                        @onclick="CancelarFormulario"
-                        disabled="@guardando">
-                    Cancelar
-                </button>
-            </div>
+</div>
 
-        </div>
-    </div>
+</div>
+
+<div class="mt-4">
+<button class="btn btn-primary me-2"
+@onclick="GuardarProducto"
+disabled="@guardando">
+@(guardando
+? "Guardando..."
+: (modoEdicion ? "Guardar cambios" : "Guardar"))
+</button>
+
+<button class="btn btn-secondary"
+@onclick="CancelarFormulario"
+disabled="@guardando">
+Cancelar
+</button>
+</div>
+
+</div>
+</div>
 }
 
 <div class="mb-3">
-    <label for="buscarProducto" class="form-label">
-        Buscar producto
-    </label>
+<label for="buscarProducto" class="form-label">
+Buscar producto
+</label>
 
-    <input id="buscarProducto"
-           class="form-control"
-           placeholder="Código o nombre..."
-           @bind="textoBusqueda"
-           @bind:event="oninput" />
+<input id="buscarProducto"
+class="form-control"
+placeholder="Código o nombre..."
+@bind="textoBusqueda"
+@bind:event="oninput" />
 </div>
 
 @if (cargando)
 {
-    <p>Cargando productos...</p>
+<p>Cargando productos...</p>
 }
 else if (!string.IsNullOrEmpty(error))
-{
+    {
     <div class="alert alert-danger">
-        @error
+    @error
     </div>
-}
+    }
 else if (!productosFiltrados.Any())
-{
+    {
     <p>No se encontraron productos.</p>
-}
+    }
 else
-{
+    {
     <table class="table table-striped table-hover">
 
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th>Producto</th>
-                <th>Precio</th>
-                <th>Costo</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
+    <thead>
+    <tr>
+    <th>Código</th>
+    <th>Producto</th>
+    <th>Precio</th>
+    <th>Costo</th>
+    <th>Estado</th>
+    <th>Acciones</th>
+    </tr>
+    </thead>
 
-        <tbody>
+    <tbody>
 
-            @foreach (var producto in productosFiltrados)
-            {
-                <tr>
-                    <td>@producto.Codigo</td>
+    @foreach (var producto in productosFiltrados)
+    {
+    <tr>
+    <td>@producto.Codigo</td>
 
-                    <td>
-                        <strong>@producto.Nombre</strong>
+    <td>
+    <strong>@producto.Nombre</strong>
 
-                        @if (!string.IsNullOrWhiteSpace(producto.Descripcion))
-                        {
-                            <br />
-                            <small class="text-muted">
-                                @producto.Descripcion
-                            </small>
-                        }
-                    </td>
+    @if (!string.IsNullOrWhiteSpace(producto.Descripcion))
+    {
+    <br />
+    <small class="text-muted">
+    @producto.Descripcion
+    </small>
+    }
+    </td>
 
-                    <td>
-                        @producto.PrecioBase.ToString("C2")
-                    </td>
+    <td>
+    @producto.PrecioBase.ToString("C2")
+    </td>
 
-                    <td>
-                        @producto.CostoActual.ToString("C2")
-                    </td>
+    <td>
+    @producto.CostoActual.ToString("C2")
+    </td>
 
-                    <td>
-                        @if (producto.Activa)
-                        {
-                            <span class="badge bg-success">
-                                Activo
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">
-                                Inactivo
-                            </span>
-                        }
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary"
-                         @onclick="() => EditarProducto(producto)">
-                         Editar
-                        </button>
-                    </td>
-                </tr>
-            }
+    <td>
+    @if (producto.Activa)
+    {
+    <span class="badge bg-success">
+    Activo
+    </span>
+    }
+else
+    {
+    <span class="badge bg-secondary">
+    Inactivo
+    </span>
+    }
+    </td>
+    <td>
+    <button class="btn btn-sm btn-outline-primary"
+    @onclick="() => EditarProducto(producto)">
+    Editar
+    </button>
+    </td>
+    </tr>
+    }
 
-        </tbody>
+    </tbody>
 
     </table>
-}
+    }
 
-@code {
+    @code {
 
     private string textoBusqueda = string.Empty;
     private List<ProductoDto> productos = new();
+    private List<EmpresaDto> empresas = new();
+    private List<CategoriaDto> categorias = new();
+    private List<UnidadMedidaDto> unidadesMedida = new();
     private bool cargando = true;
     private string? error;
     private bool mostrarFormulario;
@@ -300,20 +342,20 @@ else
     private string? errorFormulario;
     private string? mensajeExito;
     private CrearProductoDto nuevoProducto = new();
-
+    private Dictionary<string, string> erroresFormulario = new();
  
     private IEnumerable<ProductoDto> productosFiltrados =>
-        productos.Where(p =>
-            string.IsNullOrWhiteSpace(textoBusqueda)
-            || (p.Codigo?.Contains(
-                    textoBusqueda,
-                    StringComparison.OrdinalIgnoreCase) ?? false)
-            || (p.Nombre?.Contains(
-                    textoBusqueda,
-                    StringComparison.OrdinalIgnoreCase) ?? false));
+    productos.Where(p =>
+    string.IsNullOrWhiteSpace(textoBusqueda)
+    || (p.Codigo?.Contains(
+    textoBusqueda,
+    StringComparison.OrdinalIgnoreCase) ?? false)
+    || (p.Nombre?.Contains(
+    textoBusqueda,
+    StringComparison.OrdinalIgnoreCase) ?? false));
 
     private void MostrarFormulario()
-{
+    {
     errorFormulario = null;
     mensajeExito = null;
 
@@ -323,23 +365,33 @@ else
     nuevoProducto = CrearProductoVacio();
 
     mostrarFormulario = true;
-}
+    }
 
-   private void CancelarFormulario()
-{
+    private void CancelarFormulario()
+    {
     mostrarFormulario = false;
     modoEdicion = false;
     productoEditandoId = 0;
     errorFormulario = null;
+    }
+
+    private async Task SeleccionarEmpresaPrueba()
+{
+    EmpresaContext.EstablecerEmpresa(1);
+
+    var client = HttpClientFactory.CreateClient("DaluERP.Api");
+
+    categorias = await client.GetFromJsonAsync<List<CategoriaDto>>(
+        $"/api/categorias?empresaId={EmpresaContext.EmpresaId}") ?? new();
 }
 
 private CrearProductoDto CrearProductoVacio()
 {
     return new CrearProductoDto
     {
-        EmpresaId = 1,
-        CategoriaId = 1,
-        UnidadMedidaId = 1,
+        EmpresaId = 0,
+        CategoriaId = 0,
+        UnidadMedidaId = 0,
         TipoProducto = "PRODUCTO",
         EsVendible = true,
         EsInventariable = true,
@@ -352,142 +404,160 @@ private CrearProductoDto CrearProductoVacio()
 }
     private void EditarProducto(ProductoDto producto)
     {
-        errorFormulario = null;
-        mensajeExito = null;
+    errorFormulario = null;
+    mensajeExito = null;
 
-        productoEditandoId = producto.ProductoId;
-        modoEdicion = true;
-        mostrarFormulario = true;
+    productoEditandoId = producto.ProductoId;
+    modoEdicion = true;
+    mostrarFormulario = true;
 
-        nuevoProducto = new CrearProductoDto
-        {
-            EmpresaId = producto.EmpresaId,
-            CategoriaId = producto.CategoriaId,
-            UnidadMedidaId = producto.UnidadMedidaId,
-            Codigo = producto.Codigo ?? string.Empty,
-            CodigoBarras = producto.CodigoBarras,
-            Nombre = producto.Nombre ?? string.Empty,
-            Descripcion = producto.Descripcion,
-            TipoProducto = producto.TipoProducto ?? "PRODUCTO",
-            EsVendible = producto.EsVendible,
-            EsInventariable = producto.EsInventariable,
-            EsIngrediente = producto.EsIngrediente,
-            CostoActual = producto.CostoActual,
-            PrecioBase = producto.PrecioBase,
-            StockMinimo = producto.StockMinimo,
-            StockMaximo = producto.StockMaximo,
-            Activa = producto.Activa
-        };
+    nuevoProducto = new CrearProductoDto
+    {
+    EmpresaId = producto.EmpresaId,
+    CategoriaId = producto.CategoriaId,
+    UnidadMedidaId = producto.UnidadMedidaId,
+    Codigo = producto.Codigo ?? string.Empty,
+    CodigoBarras = producto.CodigoBarras,
+    Nombre = producto.Nombre ?? string.Empty,
+    Descripcion = producto.Descripcion,
+    TipoProducto = producto.TipoProducto ?? "PRODUCTO",
+    EsVendible = producto.EsVendible,
+    EsInventariable = producto.EsInventariable,
+    EsIngrediente = producto.EsIngrediente,
+    CostoActual = producto.CostoActual,
+    PrecioBase = producto.PrecioBase,
+    StockMinimo = producto.StockMinimo,
+    StockMaximo = producto.StockMaximo,
+    Activa = producto.Activa
+    };
     }
 
 
-   private async Task GuardarProducto()
-{
+    private async Task GuardarProducto()
+    {
     guardando = true;
     errorFormulario = null;
     mensajeExito = null;
 
     try
     {
-        var client = HttpClientFactory.CreateClient("DaluERP.Api");
+    var client = HttpClientFactory.CreateClient("DaluERP.Api");
 
-        if (modoEdicion)
+    if (modoEdicion)
         {
-            var request = new ActualizarProductoDto
+        var request = new ActualizarProductoDto
+        {
+        Codigo = nuevoProducto.Codigo,
+        CodigoBarras = nuevoProducto.CodigoBarras,
+        Nombre = nuevoProducto.Nombre,
+        Descripcion = nuevoProducto.Descripcion,
+        TipoProducto = nuevoProducto.TipoProducto,
+        CategoriaId = nuevoProducto.CategoriaId,
+        UnidadMedidaId = nuevoProducto.UnidadMedidaId,
+        EsVendible = nuevoProducto.EsVendible,
+        EsInventariable = nuevoProducto.EsInventariable,
+        EsIngrediente = nuevoProducto.EsIngrediente,
+        CostoActual = nuevoProducto.CostoActual,
+        PrecioBase = nuevoProducto.PrecioBase,
+        StockMinimo = nuevoProducto.StockMinimo,
+        StockMaximo = nuevoProducto.StockMaximo,
+        Activa = nuevoProducto.Activa
+        };
+
+        var response = await client.PutAsJsonAsync(
+        $"/api/productos/{productoEditandoId}",
+        request);
+
+        if (response.IsSuccessStatusCode)
             {
-                Codigo = nuevoProducto.Codigo,
-                CodigoBarras = nuevoProducto.CodigoBarras,
-                Nombre = nuevoProducto.Nombre,
-                Descripcion = nuevoProducto.Descripcion,
-                TipoProducto = nuevoProducto.TipoProducto,
-                CategoriaId = nuevoProducto.CategoriaId,
-                UnidadMedidaId = nuevoProducto.UnidadMedidaId,
-                EsVendible = nuevoProducto.EsVendible,
-                EsInventariable = nuevoProducto.EsInventariable,
-                EsIngrediente = nuevoProducto.EsIngrediente,
-                CostoActual = nuevoProducto.CostoActual,
-                PrecioBase = nuevoProducto.PrecioBase,
-                StockMinimo = nuevoProducto.StockMinimo,
-                StockMaximo = nuevoProducto.StockMaximo,
-                Activa = nuevoProducto.Activa
-            };
+            var productoActualizado =
+            await response.Content.ReadFromJsonAsync<ProductoDto>();
 
-            var response = await client.PutAsJsonAsync(
-                $"/api/productos/{productoEditandoId}",
-                request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var productoActualizado =
-                    await response.Content.ReadFromJsonAsync<ProductoDto>();
-
-                if (productoActualizado is not null)
+            if (productoActualizado is not null)
                 {
-                    var indice = productos.FindIndex(
-                        p => p.ProductoId == productoEditandoId);
+                var indice = productos.FindIndex(
+                p => p.ProductoId == productoEditandoId);
 
-                    if (indice >= 0)
+                if (indice >= 0)
                     {
-                        productos[indice] = productoActualizado;
+                    productos[indice] = productoActualizado;
                     }
-                }
+                    }
 
-                mensajeExito = "Producto actualizado correctamente.";
-                mostrarFormulario = false;
-                modoEdicion = false;
-            }
-            else
-            {
-                errorFormulario = await ObtenerMensajeError(response);
-            }
-        }
-        else
-        {
-            var response = await client.PostAsJsonAsync(
-                "/api/productos",
-                nuevoProducto);
+                    mensajeExito = "Producto actualizado correctamente.";
+                    mostrarFormulario = false;
+                    modoEdicion = false;
+                    }
+                else
+                    {
+                    errorFormulario = await ObtenerMensajeError(response);
+                    }
+                    }
+                else
+                    {
+                    var response = await client.PostAsJsonAsync(
+                    "/api/productos",
+                    nuevoProducto);
 
-            if (response.IsSuccessStatusCode)
-            {
-                var producto = await response.Content
-                    .ReadFromJsonAsync<ProductoDto>();
+                    if (response.IsSuccessStatusCode)
+                        {
+                        var producto = await response.Content
+                        .ReadFromJsonAsync<ProductoDto>();
 
-                if (producto is not null)
-                {
-                    productos.Add(producto);
-                }
+                        if (producto is not null)
+                            {
+                            productos.Add(producto);
+                            }
 
-                mensajeExito = "Producto creado correctamente.";
-                mostrarFormulario = false;
+                            mensajeExito = "Producto creado correctamente.";
+                            mostrarFormulario = false;
 
-                nuevoProducto = CrearProductoVacio();
-            }
-            else
-            {
-                errorFormulario = await ObtenerMensajeError(response);
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        errorFormulario =
-            $"Error al comunicarse con la API: {ex.Message}";
-    }
-    finally
-    {
-        guardando = false;
-    }
-}
-private class MensajeErrorDto
+                            nuevoProducto = CrearProductoVacio();
+                            }
+                        else
+                            {
+                            errorFormulario = await ObtenerMensajeError(response);
+                            }
+                            }
+                            }
+                            catch (Exception ex)
+                            {
+                            errorFormulario =
+                            $"Error al comunicarse con la API: {ex.Message}";
+                            }
+                            finally
+                            {
+                            guardando = false;
+                            }
+                            }
+                            private class MensajeErrorDto
+                            {
+                            public string? Mensaje { get; set; }
+                            }
+                           
+                           
+                            private async Task<string> ObtenerMensajeError(HttpResponseMessage response)
 {
-    public string? Mensaje { get; set; }
-}
-private async Task<string> ObtenerMensajeError(HttpResponseMessage response)
-{
-    var contenido = await response.Content.ReadAsStringAsync();
-
     if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
     {
+        try
+        {
+            var errores = await response.Content
+                .ReadFromJsonAsync<List<ErrorValidacionDto>>();
+
+            if (errores is not null && errores.Count > 0)
+            {
+                return string.Join(" ", errores
+                .Where(e => !string.IsNullOrWhiteSpace(e.ErrorMessage))
+                .Select(e => TraducirMensajeValidacion(e.ErrorMessage)));
+            }
+        }
+        catch
+        {
+            // Si no podemos interpretar la respuesta,
+            // usamos el mensaje genérico.
+        }
+
         return "Los datos ingresados no son válidos. Revisa los campos del formulario.";
     }
 
@@ -502,7 +572,7 @@ private async Task<string> ObtenerMensajeError(HttpResponseMessage response)
         {
             var error = await response.Content
                 .ReadFromJsonAsync<MensajeErrorDto>();
-    
+
             if (!string.IsNullOrWhiteSpace(error?.Mensaje))
             {
                 return error.Mensaje;
@@ -513,33 +583,97 @@ private async Task<string> ObtenerMensajeError(HttpResponseMessage response)
             // Si no podemos interpretar la respuesta,
             // usamos un mensaje genérico.
         }
-    
+
         return "No se puede guardar el producto porque existe un registro duplicado.";
     }
+
     return "No fue posible guardar el producto. Intenta nuevamente.";
 }
 
-    protected override async Task OnInitializedAsync()
+
+
+private string TraducirMensajeValidacion(string mensaje)
+{
+    return mensaje switch
     {
-        try
-        {
-            var client =
-                HttpClientFactory.CreateClient("DaluERP.Api");
+        "The Codigo field is required."
+            => "El código es obligatorio.",
 
-            var resultado =
-                await client.GetFromJsonAsync<List<ProductoDto>>(
-                    "/api/productos");
+        "The Nombre field is required."
+            => "El nombre es obligatorio.",
 
-            productos = resultado ?? new List<ProductoDto>();
-        }
-        catch (Exception ex)
-        {
-            error =
-                $"No fue posible cargar los productos: {ex.Message}";
-        }
-        finally
-        {
-            cargando = false;
-        }
-    }
+        "The TipoProducto field is required."
+            => "El tipo de producto es obligatorio.",
+
+        _ => mensaje
+    };
 }
+                                            private async Task<string> ObtenerMensajeValidacion(HttpResponseMessage response)
+                                            {
+                                            try
+                                            {
+                                            var contenido = await response.Content.ReadAsStringAsync();
+
+                                            var problema = System.Text.Json.JsonSerializer.Deserialize<
+                                            Dictionary<string, string[]>>(
+                                            contenido);
+
+                                            if (problema is not null)
+                                                {
+                                                var errores = problema
+                                                .Where(x => x.Key != "")
+                                                .SelectMany(x => x.Value)
+                                                .Where(x => !string.IsNullOrWhiteSpace(x))
+                                                .ToList();
+
+                                                if (errores.Count > 0)
+                                                    {
+                                                    return string.Join(" ", errores);
+                                                    }
+                                                    }
+                                                    }
+                                                    catch
+                                                    {
+        // Si no podemos interpretar la respuesta,
+        // usamos el mensaje genérico.
+                                                    }
+
+                                                    return "Los datos ingresados no son válidos. Revisa los campos del formulario.";
+                                                    }
+                                                    protected override async Task OnInitializedAsync()
+                                                    {
+                                                    try
+                                                    {
+                                                    var client =
+                                                    HttpClientFactory.CreateClient("DaluERP.Api");
+
+                                                    empresas = await client.GetFromJsonAsync<List<EmpresaDto>>(
+                                                        "/api/empresas") ?? new();
+ Console.WriteLine(
+    $"EMPRESA ACTUAL: {EmpresaContext.EmpresaId}");
+
+
+                                                    categorias = await client.GetFromJsonAsync<List<CategoriaDto>>(
+                                                        $"/api/categorias?empresaId={EmpresaContext.EmpresaId}") ?? new();
+
+                                                    unidadesMedida = await client.GetFromJsonAsync<List<UnidadMedidaDto>>(
+                                                        "/api/unidades-medida") ?? new();
+
+
+                                                    var resultado =
+                                                    await client.GetFromJsonAsync<List<ProductoDto>>(
+                                                    "/api/productos");
+
+                                                    productos = resultado ?? new List<ProductoDto>();
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                    error =
+                                                    $"No fue posible cargar los productos: {ex.Message}";
+                                                    }
+                                                    finally
+                                                    {
+                                                    cargando = false;
+                                                    }
+                                                    }
+                                                    }
